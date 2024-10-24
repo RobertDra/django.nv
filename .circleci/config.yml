@@ -10,6 +10,15 @@ jobs:
       - image: python:3.8         # Using Docker image from Docker Hub
     steps:
       - run: echo "This is a test step"
+  release:
+    machine: true                                        # What is this for?
+    steps:
+      - checkout
+
+      - run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker build -t $DOCKER_USERNAME/django.nv .   # Build the application into Docker image
+          docker push $DOCKER_USERNAME/django.nv         # Push the image into registry
 
   integration:
     docker:
@@ -48,10 +57,17 @@ workflows:
           filters:
             branches:
               only:
-                - main  
-      - integration:
+                - main
+      - release:
           requires:
             - test
+          filters:
+            branches:
+              only:
+                - main 
+      - integration:
+          requires:
+            - release
           filters:
             branches:
               only:
