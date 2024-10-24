@@ -1,44 +1,73 @@
 jobs:
   build:
     docker:
-      - image: python:3.6                   # similar to "image" in GitLab
+      - image: python:3.8         # Using Docker image from Docker Hub
     steps:
-      - checkout
-      - run: |                              # similar to "script" in GitLab
-          pip install -r requirements.txt
-          python manage.py check
+      - run: echo "This is a build step"
 
   test:
     docker:
-      - image: python:3.6
+      - image: python:3.8         # Using Docker image from Docker Hub
     steps:
-      - checkout
-      - run: |
-          pip install -r requirements.txt
-          python manage.py test taskManager
+      - run: echo "This is a test step"
 
   integration:
     docker:
-      - image: python:3.6
+      - image: python:3.8         # Using Docker image from Docker Hub
     steps:
-      - checkout
-      - run:
-          command: |
-            echo "This is an integration step"
-            exit 1
+      - run: echo "This is an integration step"
+      - run: exit 1               # Forces failure
+    allow_failure: true           # Continue pipeline despite failure
 
-  prod:
+  deploy:
     docker:
-      - image: python:3.6
+      - image: python:3.8         # Using Docker image from Docker Hub
     steps:
-      - checkout
       - run: echo "This is a deploy step"
+
+  artifact:
+    docker:
+      - image: python:3.8         # Using Docker image from Docker Hub
+    steps:
+      - run: echo "Saving a random message to artifact" > artifact.txt
+      - store_artifacts:
+          path: artifact.txt        # Save the artifact file
 
 workflows:
   version: 2
-  django:
+  build-and-test:
     jobs:
-      - build
-      - test
-      - integration
-      - prod
+      - build:
+          filters:
+                branches:
+                  only:
+                    - main
+      - test:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main  
+      - integration:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - main  
+      - deploy:
+          requires:
+            - integration
+          filters:
+            branches:
+              only:
+                - main  
+          type: approval            # Manual trigger for deploy job
+      - artifact:
+          requires:
+            - deploy
+          filters:
+            branches:
+              only:
+                - main  
