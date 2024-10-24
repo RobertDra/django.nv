@@ -57,8 +57,6 @@ workflows:
               only:
                 - main  
       - deploy:
-          requires:
-            - integration
           filters:
             branches:
               only:
