@@ -12,11 +12,12 @@ jobs:
   upload-artifact:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write    # Mint GitHub OIDC token
-      contents: read     # Checkout step
+      id-token: write    # for GitHub OIDC
+      contents: read     # for checkout
     env:
       JF_URL: https://accenture2025.jfrog.io
-      REPO_KEY: artifactory-build-info
+      # ← use a generic repo (must exist in Artifactory and be of type 'generic')
+      REPO_KEY: generic-local
 
     steps:
       - name: Checkout code
