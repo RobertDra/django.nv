@@ -12,34 +12,29 @@ jobs:
   upload-artifact:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write    # for GitHub OIDC
-      contents: read     # for checkout
+      id-token: write    # Mint GitHub OIDC token
+      contents: read     # Checkout step
     env:
       JF_URL: https://accenture2025.jfrog.io
-      REPO_KEY: artifactory-build-info   # your target repo
+      REPO_KEY: artifactory-build-info
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4.0.0
+      - name: Set up JFrog CLI via OIDC
+        uses: jfrog/setup-jfrog-cli@v4
         with:
           version: latest
           oidc-provider-name: testtt
+          custom-server-id: artifactory
         env:
           JF_URL: ${{ env.JF_URL }}
 
-      - name: Configure Artifactory server
-        run: |
-          jf config add artifactory \
-            --url=${{ env.JF_URL }}/artifactory \
-            --oidc-provider-name=testtt \
-            --interactive=false
-
       - name: Create a sample artifact
         run: |
-          echo "Artifact created by run ${{ github.run_id }}" > myartifact-${{ github.run_id }}.txt
+          echo "Artifact created by run ${{ github.run_id }}" \
+            > myartifact-${{ github.run_id }}.txt
 
       - name: Upload artifact to Artifactory
         run: |
