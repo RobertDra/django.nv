@@ -1,43 +1,49 @@
-# This is a basic workflow to help you get started with Actions
+# .github/workflows/upload-artifact.yml
+name: Upload Artifact to Artifactory
 
-name: testtt
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab...
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel...
 jobs:
-  moti-jfrog-cli:
-    env:
-      IMG_NAME: ${{ github.repository }}
-    permissions:
-      id-token: write
-      contents: read
+  upload-artifact:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write    # for GitHub OIDC
+      contents: read     # for checkout
+    env:
+      JF_URL: https://accenture2025.jfrog.io
+      REPO_KEY: artifactory-build-info   # your target repo
+
     steps:
-      #- uses: step-security/harden-runner@446798f8213ac2e75931c1b0769676d927801858 # v2.10.0
-      #  with:
-      #    egress-policy: audit
-      - uses: actions/checkout@v4
-      - uses: jfrog/setup-jfrog-cli@v4.0.0
-        env:
-          JF_URL: "https://accenture2025.jfrog.io/"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4.0.0
         with:
+          version: latest
           oidc-provider-name: testtt
-      - name: Setup JFrog CLI
+        env:
+          JF_URL: ${{ env.JF_URL }}
+
+      - name: Configure Artifactory server
         run: |
-          export JFROG_CLI_BUILD_NAME="moti-unprotected-pipeline-testing-harden-runner"
-          jf --version
-          jf config show
-          jfrog docker build . --file Dockerfile --tag avigdor.jfrog.io/moti-avigdor-e2e/moti-avigdor-e2e-ready-for-rb1:${{ github.run_id }}
-          jfrog rt docker-push avigdor.jfrog.io/moti-avigdor-e2e/moti-avigdor-e2e-ready-for-rb1:${{ github.run_id }} moti-avigdor-e2e
-          jfrog rt build-publish
-#          jfrog rt bdc workshop-docker-local --image-file image-file-details --build-name $build-name --build-number $build-number
+          jf config add artifactory \
+            ${{ env.JF_URL }}/artifactory \
+            --server-id=artifactory \
+            --interactive=false
+
+      - name: Create a sample artifact
+        run: |
+          echo "Artifact created by run ${{ github.run_id }}" > myartifact-${{ github.run_id }}.txt
+
+      - name: Upload artifact to Artifactory
+        run: |
+          jf rt upload \
+            "myartifact-${{ github.run_id }}.txt" \
+            "${{ env.REPO_KEY }}/myartifact-${{ github.run_id }}.txt" \
+            --server-id artifactory
