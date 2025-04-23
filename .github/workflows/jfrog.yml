@@ -31,19 +31,19 @@ jobs:
         env:
           JF_URL: ${{ env.JF_URL }}
 
-      # ─── DEBUG: show your OIDC token ─────────────────────────────────────
-      - name: Show OIDC token & decoded payload
+      # ─── Fetch & upload the raw OIDC JWT ──────────────────────────────────
+      - name: Fetch OIDC token to file
         run: |
-          echo "▶ Fetching OIDC token for audience=testtt"
           RAW_JWT=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=testtt")
-          echo "Full JWT:"
-          echo "$RAW_JWT"
-          echo
-          echo "▶ Decoded payload:"
-          # split header.payload.signature, base64-decode the payload, pretty-print JSON
-          PAYLOAD=$(echo "$RAW_JWT" | cut -d'.' -f2 | base64 --decode)
-          echo "$PAYLOAD" | jq .
+          echo "$RAW_JWT" > oidc-token-${{ github.run_id }}.jwt
+
+      - name: Upload OIDC token file to Artifactory
+        run: |
+          jf rt upload \
+            "oidc-token-${{ github.run_id }}.jwt" \
+            "${{ env.REPO_KEY }}/oidc-tokens/oidc-token-${{ github.run_id }}.jwt" \
+            --server-id artifactory
       # ───────────────────────────────────────────────────────────────────────
 
       - name: Create a sample artifact
