@@ -19,9 +19,14 @@ jobs:
       REPO_KEY: generic-local
 
     steps:
+      # ─── Avoid proxy errors in checkout ─────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
+        env:
+          http_proxy: ""
+          https_proxy: ""
 
+      # ─── Set up JFrog CLI (no proxy needed for setup) ───────────────
       - name: Set up JFrog CLI via OIDC
         uses: jfrog/setup-jfrog-cli@v4
         with:
@@ -31,27 +36,38 @@ jobs:
         env:
           JF_URL: ${{ env.JF_URL }}
 
-      # ─── Fetch & upload the raw OIDC JWT ──────────────────────────────────
+      # ─── Fetch OIDC token (via proxy) ───────────────────────────────
       - name: Fetch OIDC token to file
+        env:
+          http_proxy: http://10.14.1.13:8080
+          https_proxy: http://10.14.1.13:8080
         run: |
           RAW_JWT=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=testtt")
           echo "$RAW_JWT" > oidc-token-${{ github.run_id }}.jwt
 
+      # ─── Upload OIDC token to Artifactory via proxy ────────────────
       - name: Upload OIDC token file to Artifactory
+        env:
+          http_proxy: http://10.14.1.13:8080
+          https_proxy: http://10.14.1.13:8080
         run: |
           jf rt upload \
             "oidc-token-${{ github.run_id }}.jwt" \
             "${{ env.REPO_KEY }}/oidc-tokens/oidc-token-${{ github.run_id }}.jwt" \
             --server-id artifactory
-      # ───────────────────────────────────────────────────────────────────────
 
+      # ─── Create a sample artifact ───────────────────────────────────
       - name: Create a sample artifact
         run: |
           echo "Artifact created by run ${{ github.run_id }}" \
             > myartifact-${{ github.run_id }}.txt
 
+      # ─── Upload artifact via proxy ──────────────────────────────────
       - name: Upload artifact to Artifactory
+        env:
+          http_proxy: http://10.14.1.13:8080
+          https_proxy: http://10.14.1.13:8080
         run: |
           jf rt upload \
             "myartifact-${{ github.run_id }}.txt" \
