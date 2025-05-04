@@ -15,7 +15,7 @@ jobs:
       id-token: write    # for GitHub OIDC
       contents: read     # for checkout
     env:
-      JF_URL: https://accenture2025.jfrog.io
+      JF_URL: "https://accenture2025.jfrog.io"
       REPO_KEY: generic-local
 
     steps:
