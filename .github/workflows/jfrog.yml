@@ -35,7 +35,6 @@ jobs:
 
       # ─── Fetch OIDC token (via proxy) ───────────────────────────────
       - name: Fetch OIDC token to file
-        shell: pwsh
         run: |
           $headers = @{ Authorization = "Bearer $env:ACTIONS_ID_TOKEN_REQUEST_TOKEN" }
           $url     = "$($env:ACTIONS_ID_TOKEN_REQUEST_URL)?audience=testtt"
