@@ -1,4 +1,3 @@
-# .github/workflows/upload-artifact.yml
 name: Upload Artifact to Artifactory
 
 on:
@@ -22,6 +21,9 @@ jobs:
       # ─── Avoid proxy errors in checkout ─────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
+        env:
+          http_proxy: ""
+          https_proxy: ""
 
       # ─── Set up JFrog CLI (no proxy needed for setup) ───────────────
       - name: Set up JFrog CLI via OIDC
@@ -33,36 +35,44 @@ jobs:
         env:
           JF_URL: ${{ env.JF_URL }}
 
-      # ─── Fetch OIDC token (via proxy) ───────────────────────────────
+      # ─── Fetch OIDC token (PowerShell) ───────────────────────────────
       - name: Fetch OIDC token to file
+        shell: pwsh
+        env:
+          http_proxy: http://10.14.1.13:8080
+          https_proxy: http://10.14.1.13:8080
         run: |
           $headers = @{ Authorization = "Bearer $env:ACTIONS_ID_TOKEN_REQUEST_TOKEN" }
           $url     = "$($env:ACTIONS_ID_TOKEN_REQUEST_URL)?audience=testtt"
           $rawJwt  = Invoke-RestMethod -Uri $url -Headers $headers -UseBasicParsing
           $rawJwt | Out-File -FilePath "oidc-token-$($env:GITHUB_RUN_ID).jwt" -Encoding utf8
 
-
-      # ─── Upload OIDC token to Artifactory via proxy ────────────────
+      # ─── Upload OIDC token to Artifactory (PowerShell) ──────────────
       - name: Upload OIDC token file to Artifactory
-        shell: bash
+        shell: pwsh
         run: |
-          jf rt upload \
-            "oidc-token-${{ github.run_id }}.jwt" \
-            "${{ env.REPO_KEY }}/oidc-tokens/oidc-token-${{ github.run_id }}.jwt" \
+          $tokenFile = "oidc-token-$($env:GITHUB_RUN_ID).jwt"
+          jf rt upload $tokenFile `
+            "$($env:REPO_KEY)/oidc-tokens/$tokenFile" `
             --server-id artifactory
 
-      # ─── Create a sample artifact ───────────────────────────────────
+      # ─── Create a sample artifact (PowerShell) ──────────────────────
       - name: Create a sample artifact
-        shell: bash
+        shell: pwsh
         run: |
-          echo "Artifact created by run ${{ github.run_id }}" \
-            > myartifact-${{ github.run_id }}.txt
+          $runId    = $env:GITHUB_RUN_ID
+          $fileName = "myartifact-$runId.txt"
+          "Artifact created by run $runId" | Out-File -FilePath $fileName -Encoding utf8
 
-      # ─── Upload artifact via proxy ──────────────────────────────────
+      # ─── Upload artifact to Artifactory (PowerShell) ────────────────
       - name: Upload artifact to Artifactory
-        shell: bash
+        shell: pwsh
+        env:
+          http_proxy: http://10.14.1.13:8080
+          https_proxy: http://10.14.1.13:8080
         run: |
-          jf rt upload \
-            "myartifact-${{ github.run_id }}.txt" \
-            "${{ env.REPO_KEY }}/myartifact-${{ github.run_id }}.txt" \
+          $runId        = $env:GITHUB_RUN_ID
+          $artifactFile = "myartifact-$runId.txt"
+          jf rt upload $artifactFile `
+            "$($env:REPO_KEY)/$artifactFile" `
             --server-id artifactory
