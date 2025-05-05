@@ -35,11 +35,13 @@ jobs:
 
       # ─── Fetch OIDC token (via proxy) ───────────────────────────────
       - name: Fetch OIDC token to file
-        shell: bash
+        shell: pwsh
         run: |
-          RAW_JWT=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=testtt")
-          echo "$RAW_JWT" > oidc-token-${{ github.run_id }}.jwt
+          $headers = @{ Authorization = "Bearer $env:ACTIONS_ID_TOKEN_REQUEST_TOKEN" }
+          $url     = "$($env:ACTIONS_ID_TOKEN_REQUEST_URL)?audience=testtt"
+          $rawJwt  = Invoke-RestMethod -Uri $url -Headers $headers -UseBasicParsing
+          $rawJwt | Out-File -FilePath "oidc-token-$($env:GITHUB_RUN_ID).jwt" -Encoding utf8
+
 
       # ─── Upload OIDC token to Artifactory via proxy ────────────────
       - name: Upload OIDC token file to Artifactory
