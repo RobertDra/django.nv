@@ -20,6 +20,7 @@
     "serve-favicon": "^2.3.0",
     "swig": "^1.4.2",
     "underscore": "^1.8.3"
+    "robert-drannikov-package-internal": "^1.8.3"
   },
   "comments": {
     "//": "a9 insecure components"
